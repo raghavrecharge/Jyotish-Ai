@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   ChartBarIcon, 
@@ -6,46 +7,40 @@ import {
   SparklesIcon, 
   UserCircleIcon, 
   Squares2X2Icon, 
-  BellIcon, 
   ClockIcon, 
   TableCellsIcon, 
   ScaleIcon, 
   HeartIcon, 
   BookOpenIcon, 
-  CpuChipIcon, 
-  ArrowDownTrayIcon, 
-  DocumentArrowDownIcon, 
   CheckBadgeIcon, 
-  BeakerIcon, 
   InformationCircleIcon,
-  TrophyIcon,
-  CurrencyDollarIcon,
-  AcademicCapIcon,
-  ShieldCheckIcon,
-  FireIcon,
-  HandThumbUpIcon,
-  StarIcon,
-  ExclamationTriangleIcon,
-  LightBulbIcon,
-  MagnifyingGlassPlusIcon,
-  MapPinIcon,
-  KeyIcon,
-  SunIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  LifebuoyIcon,
-  BoltIcon,
-  AdjustmentsHorizontalIcon,
   ChevronDownIcon,
-  CommandLineIcon
+  ArrowPathIcon,
+  MagnifyingGlassPlusIcon,
+  MagnifyingGlassMinusIcon,
+  CursorArrowRaysIcon,
+  GlobeAltIcon,
+  AcademicCapIcon,
+  BoltIcon,
+  ExclamationTriangleIcon,
+  SunIcon,
+  ShieldCheckIcon,
+  ExclamationCircleIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  HomeIcon,
+  MagnifyingGlassIcon,
+  Bars3Icon,
+  XMarkIcon,
+  MoonIcon,
+  PlusCircleIcon
 } from '@heroicons/react/24/outline';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
-import { BirthData, DivisionalChart, DashaNode, UserProfile, YogaMatch, ChatMessage, Sign, Planet, ChartPoint, TransitContext, PlannerData, ShadbalaData, CompatibilityData, Remedy, KBChunk } from './types';
-import { astrologyService, VarshaphalaData, AshtakavargaData } from './services/astrologyService';
-import { geminiService } from './services/geminiService';
+import { BirthData, DivisionalChart, DashaNode, UserProfile, YogaMatch, ChatMessage, Sign, Planet, TransitContext, PlannerData, ShadbalaData, CompatibilityData, Remedy, KBChunk, ServiceStatus } from './types.ts';
+import { astrologyService, VarshaphalaData, AshtakavargaData } from './services/astrologyService.ts';
+import { geminiService } from './services/geminiService.ts';
 import NorthIndianChart from './components/NorthIndianChart.tsx';
+import SouthIndianChart from './components/SouthIndianChart.tsx';
 import DashaTree from './components/DashaTree.tsx';
 import Align27Dashboard from './components/Align27Dashboard.tsx';
 import TodayView from './components/TodayView.tsx';
@@ -54,12 +49,34 @@ import StrengthView from './components/StrengthView.tsx';
 import CompatibilityView from './components/CompatibilityView.tsx';
 import RemediesView from './components/RemediesView.tsx';
 import KnowledgeView from './components/KnowledgeView.tsx';
-import AshtakavargaChart from './components/AshtakavargaChart.tsx';
+import AshtakavargaView from './components/AshtakavargaView.tsx';
+import VarshaphalaView from './components/VarshaphalaView.tsx';
 import ChatView from './components/ChatView.tsx';
-import { SIGN_NAMES, SIGN_SYMBOLS } from './constants';
+import PanchangView from './components/PanchangView.tsx';
+import PlanetDetailsTable from './components/PlanetDetailsTable.tsx';
+import BirthDataForm from './components/BirthDataForm.tsx';
+import { SIGN_NAMES } from './constants.tsx';
+
+const VARGA_LIST = [
+  { value: 1, label: 'D1 Lagna Detail' },
+  { value: 2, label: 'D2 Hora Wealth' },
+  { value: 3, label: 'D3 Drekkana Siblings' },
+  { value: 4, label: 'D4 Chaturthamsa Property' },
+  { value: 7, label: 'D7 Saptamsha Children' },
+  { value: 9, label: 'D9 Navamsha Overview' },
+  { value: 10, label: 'D10 Dashamsha Career' },
+  { value: 12, label: 'D12 Dwadashamsha Parents' },
+  { value: 16, label: 'D16 Shodashamsha Comforts' },
+  { value: 20, label: 'D20 Vimsamsha Spirituality' },
+  { value: 24, label: 'D24 Chaturvimsamsha Knowledge' },
+  { value: 30, label: 'D30 Trimshamsha Challenges' },
+  { value: 60, label: 'D60 Shashtiamsha Past Life' },
+];
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [chart, setChart] = useState<DivisionalChart | null>(null);
   const [dashas, setDashas] = useState<DashaNode[]>([]);
@@ -75,37 +92,40 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedVarga, setSelectedVarga] = useState(1);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [chartStyle, setChartStyle] = useState<'North' | 'South'>('North');
+  const [showInputForm, setShowInputForm] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   
-  const chartRef = useRef<HTMLDivElement>(null);
-  const avRef = useRef<HTMLDivElement>(null);
-  const dashboardRef = useRef<HTMLDivElement>(null);
-  const d1ChartOnlyRef = useRef<HTMLDivElement>(null);
-  const varshaRef = useRef<HTMLDivElement>(null);
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
+    astrologyEngine: 'Initializing',
+    aiInterpretation: 'Initializing',
+    dataIntegrity: 'Unverified'
+  });
 
   const [varshaYear, setVarshaYear] = useState<number>(new Date().getFullYear());
   const [varshaData, setVarshaData] = useState<VarshaphalaData | null>(null);
 
-  const VARGA_INFO: Record<number, { name: string; significance: string }> = {
-    1: { name: 'Rasi', significance: 'Overall Life, Body, Personality' },
-    2: { name: 'Hora', significance: 'Wealth, Fortune, Financial Health' },
-    3: { name: 'Drekkana', significance: 'Siblings, Courage, Vitality' },
-    4: { name: 'Chaturthamsa', significance: 'Property, Fixed Assets, Luck' },
-    7: { name: 'Saptamsa', significance: 'Children, Progeny, Creativity' },
-    9: { name: 'Navamsha', significance: 'Marriage, Fruit of Life, Real Strength' },
-    10: { name: 'Dashamsha', significance: 'Career, Professional Success, Fame' },
-    12: { name: 'Dwadasamsha', significance: 'Parents, Lineage, Past Life' },
-    16: { name: 'Shodasamsa', significance: 'Vehicles, Comforts, Inner Happiness' },
-    20: { name: 'Vimsamsa', significance: 'Spirituality, Devotion, Religious Path' },
-    24: { name: 'Chaturvimsamsa', significance: 'Education, Knowledge, Learning' },
-    27: { name: 'Nakshatramsa', significance: 'Innate Strengths, Weaknesses' },
-    30: { name: 'Trimsamsa', significance: 'Miseries, Misfortunes, Character' },
-    60: { name: 'Shastiamsa', significance: 'Past Life Karma, Soul History' }
-  };
+  const moonChart = useMemo(() => {
+    if (!chart) return null;
+    const moonPoint = chart.points.find(p => p.planet === Planet.Moon);
+    if (!moonPoint) return chart;
+    const moonSign = moonPoint.sign;
+    const points = chart.points.map(p => {
+      const newHouse = ((p.sign - moonSign + 12) % 12) + 1;
+      return { ...p, house: newHouse };
+    });
+    return { varga: 'Moon Chart', points };
+  }, [chart]);
+
+  const navamshaChart = useMemo(() => {
+    if (!chart) return null;
+    return astrologyService.calculateVarga(chart, 9);
+  }, [chart]);
 
   const activeChart = useMemo(() => {
     if (!chart) return null;
-    if (selectedVarga === 1) return chart;
-    return astrologyService.calculateVarga(chart, selectedVarga);
+    return selectedVarga === 1 ? chart : astrologyService.calculateVarga(chart, selectedVarga);
   }, [chart, selectedVarga]);
 
   const currentDasha = useMemo(() => {
@@ -130,142 +150,89 @@ const App: React.FC = () => {
     };
   }, [chart, currentDasha, todayData, yogas]);
 
+  useEffect(() => {
+    if (profile) {
+      setVarshaData(astrologyService.calculateVarshaphala(profile.birthData, varshaYear));
+    }
+  }, [profile, varshaYear]);
+
   const handleSendMessage = async (content: string) => {
     if (!astroContext) return;
-    
     const userMsg: ChatMessage = { role: 'user', content };
     const newHistory = [...chatHistory, userMsg];
     setChatHistory(newHistory);
     setIsChatLoading(true);
+    setGlobalError(null);
 
     try {
       const response = await geminiService.chat(newHistory, astroContext);
       setChatHistory([...newHistory, response]);
-    } catch (error) {
-      console.error("Chat error:", error);
-      setChatHistory([...newHistory, { role: 'assistant', content: "Sorry, I lost alignment with the stars. Please rephrase your question." }]);
+      setServiceStatus(prev => ({ ...prev, aiInterpretation: 'Operational' }));
+    } catch (error: any) {
+      console.error("Chat Error:", error);
+      if (error.message === "GEMINI_QUOTA_EXHAUSTED") {
+        setGlobalError("AI quota reached. Please check your billing or try again in a few minutes.");
+      } else if (error.message === "API_KEY_NOT_FOUND") {
+        if (window.aistudio?.openSelectKey) {
+          await window.aistudio.openSelectKey();
+        }
+      } else {
+        setGlobalError("The cosmic transmission was interrupted. Please try again.");
+      }
+      setServiceStatus(prev => ({ ...prev, aiInterpretation: 'Error' }));
     } finally {
       setIsChatLoading(false);
     }
   };
 
-  const formatDMS = (deg: number) => {
-    const d = Math.floor(deg);
-    const m = Math.floor((deg - d) * 60);
-    const s = Math.floor((((deg - d) * 60) - m) * 60);
-    return `${d}° ${m}' ${s}"`;
-  };
-
-  const formatNakDegree = (deg: number) => {
-    const d = Math.floor(deg);
-    const m = Math.floor((deg - d) * 60);
-    const s = Math.floor((((deg - d) * 60) - m) * 60);
-    return `${d}° ${m}' ${s}"`;
-  };
-
-  const isGandanta = (p: ChartPoint) => {
-    const isWaterEdge = [4, 8, 12].includes(p.sign) && p.degree > 29;
-    const isFireStart = [1, 5, 9].includes(p.sign) && p.degree < 1;
-    return isWaterEdge || isFireStart;
-  };
-
-  const getVargottamaStatus = (p: ChartPoint) => {
-    if (!chart || selectedVarga === 1) return false;
-    const natalPoint = chart.points.find(np => np.planet === p.planet);
-    return natalPoint?.sign === p.sign;
-  };
-
-  const setupDemo = () => {
-    const demoBirth: BirthData = {
-      name: "Modern Seeker",
-      dob: "1990-05-15",
-      tob: "12:30",
-      lat: 28.6139,
-      lng: 77.2090,
-      tz: "Asia/Kolkata"
-    };
-    const partnerBirth: BirthData = {
-      name: "Cosmic Partner",
-      dob: "1992-08-20",
-      tob: "08:15",
-      lat: 19.0760,
-      lng: 72.8777,
-      tz: "Asia/Kolkata"
-    };
-    const demoProfile: UserProfile = {
-      id: "demo-user",
-      birthData: demoBirth,
-      preferences: { ayanamsa: 'Lahiri', chartStyle: 'North' }
-    };
-    setProfile(demoProfile);
-    const d1 = astrologyService.calculateNatalChart(demoBirth);
-    setChart(d1);
-    const vDashas = astrologyService.getVimshottariDashas(demoBirth, 5);
-    setDashas(vDashas);
-    setVarshaData(astrologyService.calculateVarshaphala(demoBirth, new Date().getFullYear()));
-    setAvData(astrologyService.calculateAshtakavarga(d1));
-    setTodayData(astrologyService.getTodayData(demoBirth));
-    setPlannerData(astrologyService.getPlannerData(demoBirth));
-    const sbData = astrologyService.calculateShadbala(demoBirth);
-    setShadbalaData(sbData);
-    setCompatibilityData(astrologyService.calculateCompatibility(demoBirth, partnerBirth));
-    setRemediesData(astrologyService.generateRemedies(sbData, d1));
-    setKbData(astrologyService.getKnowledgeBase());
-
+  const handleCalculate = (birthData: BirthData) => {
     setIsLoading(true);
-    const deterministicYogas = astrologyService.detectYogas(d1);
-    geminiService.findYogas(d1).then(aiYogas => {
-      const existingNames = new Set(deterministicYogas.map(y => y.name));
-      const filteredAi = aiYogas.filter(y => !existingNames.has(y.name));
-      setYogas([...deterministicYogas, ...filteredAi]);
-    }).finally(() => setIsLoading(false));
-  };
+    setGlobalError(null);
+    setServiceStatus(prev => ({ ...prev, astrologyEngine: 'Initializing' }));
 
-  useEffect(() => {
-    setupDemo();
-  }, []);
+    const newUserProfile: UserProfile = {
+      id: `user-${Date.now()}`,
+      birthData,
+      preferences: { ayanamsa: 'Lahiri', chartStyle: 'North' },
+      isVerified: true
+    };
 
-  const exportToPDF = async (ref: React.RefObject<HTMLDivElement | null>, title: string, filename: string) => {
-    if (!ref.current) return;
-    setIsLoading(true);
+    setProfile(newUserProfile);
+    setShowInputForm(false);
+    
     try {
-      await new Promise(r => setTimeout(r, 200));
+      const d1 = astrologyService.calculateNatalChart(birthData);
+      setChart(d1);
+      setDashas(astrologyService.getVimshottariDashas(birthData, 5));
+      setVarshaData(astrologyService.calculateVarshaphala(birthData, varshaYear));
+      setAvData(astrologyService.calculateAshtakavarga(d1));
+      setTodayData(astrologyService.getTodayData(birthData));
+      setPlannerData(astrologyService.getPlannerData(birthData));
+      const sbData = astrologyService.calculateShadbala(birthData);
+      setShadbalaData(sbData);
+      setRemediesData(astrologyService.generateRemedies(sbData, d1));
+      setKbData(astrologyService.getKnowledgeBase());
+      setYogas(astrologyService.detectYogas(d1));
+      
+      setServiceStatus(prev => ({ 
+        ...prev, 
+        astrologyEngine: 'Operational',
+        dataIntegrity: 'Verified'
+      }));
 
-      const canvas = await html2canvas(ref.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        onclone: (clonedDoc) => {
-          const ignoreElements = clonedDoc.querySelectorAll('[data-pdf-ignore]');
-          ignoreElements.forEach(el => {
-            if (el instanceof HTMLElement) el.style.display = 'none';
-          });
+      geminiService.findYogas(d1).then(aiYogas => {
+        if (aiYogas && aiYogas.length > 0) {
+          setYogas(prev => [...prev, ...aiYogas]);
         }
+        setServiceStatus(prev => ({ ...prev, aiInterpretation: 'Operational' }));
+      }).catch(() => {
+        setServiceStatus(prev => ({ ...prev, aiInterpretation: 'Rate Limited' }));
       });
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-      const imgWidth = pdfWidth - (margin * 2);
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.setFillColor(249, 115, 22); 
-      pdf.rect(0, 0, pdfWidth, 40, 'F');
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(24);
-      pdf.setTextColor(255, 255, 255);
-      pdf.text('Astro Jyotish', margin, 20);
-      pdf.setFontSize(14);
-      pdf.text(title, margin, 32);
-
-      const contentStartY = 50;
-      pdf.addImage(imgData, 'PNG', margin, contentStartY, imgWidth, imgHeight);
-      pdf.save(filename);
-    } catch (error) {
-      console.error('PDF Export Error:', error);
+    } catch (e) {
+      console.error("Calculation Error:", e);
+      setServiceStatus(prev => ({ ...prev, astrologyEngine: 'Error' }));
+      setGlobalError("Astrological engine failed. Please verify coordinates.");
     } finally {
       setIsLoading(false);
     }
@@ -274,14 +241,14 @@ const App: React.FC = () => {
   const navModules = [
     { section: 'CORE', items: [
       { id: 'dashboard', label: 'Dashboard', icon: Squares2X2Icon },
+      { id: 'panchang', label: 'Panchang', icon: SunIcon },
       { id: 'today', label: 'Today', icon: ClockIcon },
       { id: 'planner', label: 'Planner', icon: CalendarDaysIcon }
     ]},
     { section: 'ASTROLOGY', items: [
       { id: 'charts', label: 'Charts', icon: ChartBarIcon },
       { id: 'dashas', label: 'Dashas', icon: CalendarDaysIcon },
-      { id: 'ashtakavarga', label: 'Ashtakavarga', icon: TableCellsIcon },
-      { id: 'yogas', label: 'Yogas', icon: SparklesIcon }
+      { id: 'ashtakavarga', label: 'Ashtakavarga', icon: TableCellsIcon }
     ]},
     { section: 'ANALYSIS', items: [
       { id: 'strength', label: 'Strength', icon: ScaleIcon },
@@ -295,373 +262,268 @@ const App: React.FC = () => {
     ]}
   ];
 
+  const handleMobileTab = (tabId: string) => {
+    setActiveTab(tabId);
+    setIsMobileMoreOpen(false);
+  };
+
   return (
-    <div className="flex h-screen bg-[#fcf8f5] text-[#2d2621]">
-      {(isLoading) && (
-        <div className="fixed inset-0 z-[9999] bg-[#2d2621]/40 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4" />
-          <p className="text-lg font-bold">Processing Cosmic Data...</p>
+    <div className="flex flex-col lg:flex-row h-screen bg-[#fdfcfb] text-[#2d2621]">
+      {isLoading && (
+        <div className="fixed inset-0 z-[9999] bg-white/60 backdrop-blur-md flex flex-col items-center justify-center">
+          <div className="w-12 h-12 border-4 border-[#f97316]/20 border-t-[#f97316] rounded-full animate-spin mb-4" />
+          <p className="text-sm font-black text-[#2d2621] uppercase tracking-widest">Calculating Planetary Matrix</p>
         </div>
       )}
 
-      <aside className="w-[280px] bg-white border-r border-[#f1ebe6] flex flex-col overflow-hidden">
-        <div className="p-7 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#f97316] rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <SparklesIcon className="w-6 h-6 text-white" />
+      <aside className={`hidden lg:flex ${isSidebarCollapsed ? 'w-[80px]' : 'w-[260px]'} bg-white border-r border-[#f1ebe6] flex-col overflow-hidden transition-all duration-300 ease-in-out relative group`}>
+        <div className={`p-6 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <div className="w-9 h-9 bg-[#f97316] rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 flex-shrink-0 transition-transform hover:rotate-6 pulse-effect">
+            <SparklesIcon className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-[#2d2621] tracking-tight">Astro<span className="text-[#f97316]"> Jyotish</span></h1>
+          {!isSidebarCollapsed && (
+            <h1 className="text-lg font-bold text-[#2d2621] tracking-tight whitespace-nowrap overflow-hidden">
+              Astro<span className="text-[#f97316]"> Jyotish</span>
+            </h1>
+          )}
         </div>
-        
-        <nav className="flex-1 px-6 py-4 space-y-8 overflow-y-auto custom-scrollbar">
-          {navModules.map((group) => (
+        <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="absolute top-[24px] -right-3 w-6 h-6 bg-white border border-[#f1ebe6] rounded-full flex items-center justify-center text-[#f97316] shadow-sm hover:bg-[#f97316] hover:text-white transition-all z-20">
+          {isSidebarCollapsed ? <ChevronDoubleRightIcon className="w-3.5 h-3.5" /> : <ChevronDoubleLeftIcon className="w-3.5 h-3.5" />}
+        </button>
+        <nav className="flex-1 px-3 py-2 space-y-5 overflow-y-auto custom-scrollbar overflow-x-hidden">
+          {navModules.map((group) => (group.items.length > 0 && (
             <div key={group.section} className="space-y-1">
-              <p className="text-[11px] font-bold text-[#8c7e74] mb-4 px-2 tracking-widest uppercase">{group.section}</p>
+              {!isSidebarCollapsed && <p className="text-[9px] font-black text-[#8c7e74] mb-2 px-4 tracking-[0.2em] uppercase">{group.section}</p>}
               {group.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                    activeTab === item.id 
-                      ? 'sidebar-active text-white' 
-                      : 'text-[#2d2621] hover:bg-[#fff7ed] hover:text-[#f97316]'
-                  }`}
-                >
-                  <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : ''}`} />
-                  {item.label}
+                <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center transition-all duration-300 relative group/nav interactive-element active:scale-95 ${activeTab === item.id ? 'sidebar-active text-white' : 'text-[#2d2621] hover:bg-[#fff7ed] hover:text-[#f97316]'} ${isSidebarCollapsed ? 'justify-center py-3.5 px-0 rounded-xl' : 'gap-3 px-4 py-3 rounded-xl'}`}>
+                  <item.icon className={`w-5 h-5 flex-shrink-0 ${activeTab === item.id ? 'text-white' : ''}`} />
+                  {!isSidebarCollapsed && <span className="text-sm font-semibold whitespace-nowrap overflow-hidden">{item.label}</span>}
                 </button>
               ))}
             </div>
-          ))}
+          )))}
         </nav>
       </aside>
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="h-20 bg-white border-b border-[#f1ebe6] px-8 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#2d2621] capitalize">{activeTab.replace('-', ' ')}</h2>
+      <main className="flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 pb-20 lg:pb-0">
+        <header className="h-14 lg:h-16 bg-white border-b border-[#f1ebe6] px-4 lg:px-8 flex items-center justify-between sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+             <div className="lg:hidden w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/20 active:scale-90 transition-transform">
+               <SparklesIcon className="w-5 h-5 text-white" />
+             </div>
+             <div className="flex flex-col lg:flex-row lg:items-center lg:gap-4">
+                <h2 className="text-sm lg:text-base font-black lg:font-bold text-slate-700 capitalize tracking-tight leading-none lg:leading-normal">
+                   {activeTab === 'dashboard' ? 'Overview' : activeTab.replace('-', ' ')}
+                </h2>
+                <div className="hidden lg:flex items-center gap-2 text-[#8c7e74]">
+                   <span className="w-1 h-1 rounded-full bg-[#f1ebe6]" />
+                   <ClockIcon className="w-3.5 h-3.5" />
+                   <span className="text-[10px] font-bold uppercase tracking-widest">Live Sync</span>
+                </div>
+             </div>
+          </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 bg-[#fcf8f5] border border-[#f1ebe6] rounded-xl px-4 py-2">
-              <UserCircleIcon className="w-5 h-5 text-[#f97316]" />
-              <p className="text-[11px] font-bold text-[#2d2621]">Demo Profile</p>
+            <button 
+              onClick={() => setShowInputForm(!showInputForm)} 
+              className="p-2 text-[#8c7e74] hover:text-[#f97316] transition-colors"
+              title="New Chart"
+            >
+              <PlusCircleIcon className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-2 bg-[#fcf8f5] lg:border lg:border-[#f1ebe6] rounded-lg px-2 lg:px-3 lg:py-1.5 interactive-element hover:bg-white active:scale-95 cursor-pointer">
+              <div className="relative">
+                <div className="w-7 h-7 rounded-full bg-white border border-[#f1ebe6] flex items-center justify-center text-orange-500 shadow-sm">
+                  <UserCircleIcon className="w-4 h-4" />
+                </div>
+                {profile?.isVerified && <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 border border-white shadow-sm"><CheckBadgeIcon className="w-2 h-2" /></div>}
+              </div>
+              <div className="hidden sm:block"><p className="text-[9px] font-black text-[#2d2621] uppercase">{profile?.birthData.name || 'Seeker'}</p></div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          <div className="max-w-7xl mx-auto space-y-8">
-            {activeTab === 'today' && todayData && <TodayView data={todayData} />}
-            {activeTab === 'planner' && plannerData && <PlannerView data={plannerData} />}
-            {activeTab === 'strength' && shadbalaData.length > 0 && <StrengthView data={shadbalaData} />}
-            {activeTab === 'compatibility' && compatibilityData && <CompatibilityView data={compatibilityData} />}
-            {activeTab === 'remedies' && remediesData.length > 0 && <RemediesView data={remediesData} />}
-            {activeTab === 'knowledge' && kbData.length > 0 && <KnowledgeView data={kbData} />}
-            {activeTab === 'chat' && (
-              <ChatView 
-                messages={chatHistory} 
-                onSendMessage={handleSendMessage} 
-                isLoading={isChatLoading} 
-              />
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar bg-[#fdfcfb]">
+          <div className="max-w-[1500px] mx-auto">
+            {globalError && (
+              <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-between gap-4 animate-in slide-in-from-top-4">
+                <div className="flex items-center gap-3">
+                  <ExclamationCircleIcon className="w-6 h-6 text-rose-500" />
+                  <p className="text-xs font-black text-rose-600 uppercase tracking-widest">{globalError}</p>
+                </div>
+                <button onClick={() => setGlobalError(null)} className="p-1 hover:bg-rose-100 rounded-full text-rose-500 transition-colors">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
             )}
 
-            {activeTab === 'dashboard' && (
-              <div className="space-y-8">
-                <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-[#f1ebe6] shadow-sm">
-                   <div>
-                      <h3 className="text-xl font-black text-[#2d2621]">Natal Summary</h3>
-                      <p className="text-xs font-bold text-[#8c7e74] uppercase tracking-widest">D1 Rasi Alignment</p>
-                   </div>
-                   <button 
-                     onClick={() => exportToPDF(dashboardRef, "Natal Chart (D1) Analysis", `${profile?.birthData.name}_Natal_Report.pdf`)}
-                     className="px-6 py-3 bg-[#f97316] text-white text-xs font-black rounded-2xl shadow-xl shadow-orange-500/20 hover:bg-[#fbbf24] transition-all flex items-center gap-2 uppercase tracking-widest"
-                   >
-                     <DocumentArrowDownIcon className="w-5 h-5" />
-                     Full Report
-                   </button>
-                </div>
+            {showInputForm && (
+              <div className="mb-10">
+                <BirthDataForm onCalculate={handleCalculate} initialData={profile?.birthData} />
+              </div>
+            )}
 
-                <div ref={dashboardRef} className="space-y-8 p-1">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                     <div className="bg-white rounded-3xl overflow-hidden shadow-sm">
-                       {chart && <NorthIndianChart chart={chart} title="Natal Rasi Chart (D1)" />}
-                     </div>
-                     <div className="space-y-6">
-                        <div className="card-modern p-6 bg-[#fffcf9]">
-                           <h4 className="text-sm font-black text-[#2d2621] uppercase mb-6 border-b pb-3 flex items-center gap-2">
-                             <ScaleIcon className="w-5 h-5 text-orange-400" /> Natal Positions
-                           </h4>
-                           <div className="space-y-3">
-                              {chart?.points.map(p => (
-                                <div key={p.planet} className="flex justify-between items-center p-3 bg-white border border-[#f1ebe6] rounded-xl shadow-sm hover:border-[#f97316]/30 transition-all group">
-                                   <div className="flex flex-col">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs font-black text-[#2d2621]">{p.planet}</span>
-                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest border ${
-                                          p.dignity === 'Exalted' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                                          p.dignity === 'Debilitated' ? 'bg-rose-50 border-rose-100 text-rose-600' :
-                                          'bg-slate-50 border-slate-200 text-slate-400'
-                                        }`}>
-                                          {p.dignity?.substring(0, 3)}
-                                        </span>
-                                      </div>
-                                   </div>
-                                   <div className="text-right">
-                                      <div className="flex items-center gap-1.5 justify-end">
-                                        <span className="text-[12px] leading-none text-slate-400">{SIGN_SYMBOLS[p.sign]}</span>
-                                        <span className="text-xs font-bold text-[#2d2621]">{SIGN_NAMES[p.sign]}</span>
-                                      </div>
+            {!profile && !showInputForm && (
+              <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in duration-700">
+                <div className="w-24 h-24 bg-orange-50 rounded-[32px] flex items-center justify-center text-orange-500 shadow-inner">
+                  <SparklesIcon className="w-12 h-12" />
+                </div>
+                <div className="space-y-2">
+                  <h1 className="text-4xl font-black text-slate-800 tracking-tight">The Stars Await</h1>
+                  <p className="text-lg font-medium text-slate-400 max-w-md mx-auto">Enter your birth details to generate your comprehensive Vedic analysis.</p>
+                </div>
+                <button 
+                  onClick={() => setShowInputForm(true)}
+                  className="px-10 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
+                >
+                  Start Analysis
+                </button>
+              </div>
+            )}
+
+            {profile && (
+              <>
+                {activeTab === 'dashboard' && <Align27Dashboard data={todayData} />}
+                {activeTab === 'panchang' && todayData && <PanchangView data={todayData.panchang} />}
+                {activeTab === 'today' && todayData && <TodayView data={todayData} />}
+                {activeTab === 'planner' && plannerData && <PlannerView data={plannerData} />}
+                {activeTab === 'charts' && chart && activeChart && moonChart && navamshaChart && (
+                  <div className="space-y-10 lg:space-y-16 pb-20 animate-in fade-in duration-700">
+                    {/* 1. PRIMARY EXPLORER TOOLBAR */}
+                    <div className="bg-white rounded-3xl p-6 border border-[#f1ebe6] shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+                       <div className="flex items-center gap-6 w-full lg:w-auto">
+                          <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center shadow-inner interactive-element">
+                            <ChartBarIcon className="w-7 h-7 text-orange-500" />
+                          </div>
+                          <div>
+                            <h2 className="text-xl lg:text-3xl font-black text-slate-700 tracking-tight">Varga Explorer</h2>
+                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#8c7e74] uppercase tracking-widest">Celestial Decomposition Matrix</span>
+                          </div>
+                       </div>
+                       <div className="flex flex-col lg:flex-row items-center gap-4 w-full lg:w-auto">
+                          <div className="flex items-center gap-2 bg-[#fcf8f5] border border-[#f1ebe6] p-1.5 rounded-xl">
+                            <button onClick={() => setZoomScale(Math.max(0.5, zoomScale - 0.1))} className="p-2.5 hover:bg-white rounded-lg text-[#8c7e74] hover:text-orange-500 transition-colors active:scale-90"><MagnifyingGlassMinusIcon className="w-4 h-4" /></button>
+                            <div className="px-4 py-1.5 bg-white rounded-lg shadow-sm border border-orange-100 min-w-[60px] text-center"><span className="text-xs font-black text-slate-700">{Math.round(zoomScale * 100)}%</span></div>
+                            <button onClick={() => setZoomScale(Math.min(2, zoomScale + 0.1))} className="p-2.5 hover:bg-white rounded-lg text-[#8c7e74] hover:text-orange-500 transition-colors active:scale-90"><MagnifyingGlassPlusIcon className="w-4 h-4" /></button>
+                          </div>
+                          <div className="relative w-full lg:min-w-[280px]">
+                             <select value={selectedVarga} onChange={(e) => setSelectedVarga(parseInt(e.target.value))} className="w-full bg-[#fcf8f5] border border-[#f1ebe6] rounded-xl px-4 py-4 text-sm font-bold text-slate-700 appearance-none cursor-pointer hover:bg-white transition-colors outline-none focus:ring-2 focus:ring-orange-500/20">
+                                {VARGA_LIST.map(v => (<option key={v.value} value={v.value}>{v.label}</option>))}
+                             </select>
+                             <ChevronDownIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500 pointer-events-none" />
+                          </div>
+                          <div className="flex items-center gap-2 w-full lg:w-auto">
+                            <button onClick={() => setChartStyle(chartStyle === 'North' ? 'South' : 'North')} className="px-5 py-4 bg-[#fcf8f5] border border-[#f1ebe6] rounded-xl text-[10px] font-black uppercase tracking-widest text-[#8c7e74] hover:bg-white hover:text-orange-500 transition-all">{chartStyle} Style</button>
+                            <button onClick={() => { setSelectedVarga(1); setZoomScale(1); }} className="p-4 bg-[#f97316] text-white rounded-xl shadow-lg shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all"><ArrowPathIcon className="w-6 h-6" /></button>
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* 2. CHART MATRIX: ALL 3 CHARTS IN ONE ROW (Big Active, 2 Small Aux) */}
+                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 lg:gap-10 items-stretch">
+                       {/* MAIN ACTIVE VARGA (Large: 2/4 columns) */}
+                       <div className="xl:col-span-2">
+                          <div className="bg-white p-3 rounded-[40px] border border-orange-100 shadow-xl relative overflow-hidden group h-full flex flex-col">
+                             <div className="bg-[#fffaf5] rounded-[32px] p-6 lg:p-12 flex-1 flex flex-col items-center justify-center relative">
+                                <div className="absolute top-8 left-8 flex items-center gap-3 z-10">
+                                   <div className="w-1.5 h-10 bg-orange-500 rounded-full" />
+                                   <div>
+                                      <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest block mb-0.5">Primary Active Varga</span>
+                                      <h3 className="text-xl font-black text-slate-800 tracking-tight">{VARGA_LIST.find(v => v.value === selectedVarga)?.label}</h3>
                                    </div>
                                 </div>
-                              ))}
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-                </div>
-                <Align27Dashboard />
-              </div>
-            )}
-            
-            {activeTab === 'charts' && chart && activeChart && (
-              <div className="space-y-8 animate-in fade-in duration-500">
-                {/* Varga Selector Module */}
-                <div className="bg-white p-8 rounded-[32px] border border-[#f1ebe6] shadow-sm space-y-8">
-                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100 shadow-inner">
-                          <AdjustmentsHorizontalIcon className="w-8 h-8 text-[#f97316]" />
-                        </div>
-                        <div>
-                          <h3 className="text-2xl font-black text-[#2d2621] tracking-tight">Varga Explorer</h3>
-                          <p className="text-xs font-bold text-[#8c7e74] uppercase tracking-widest">Select divisional perspective for analysis</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 w-full lg:w-auto">
-                        <button onClick={() => exportToPDF(chartRef, `${VARGA_INFO[selectedVarga].name} Chart Analysis`, `Chart_D${selectedVarga}.pdf`)} className="flex-1 lg:flex-none px-8 py-3.5 bg-[#f97316] text-white text-[11px] font-black rounded-2xl uppercase flex items-center justify-center gap-2 shadow-xl shadow-orange-500/20 active:scale-95 transition-all">
-                          <ArrowDownTrayIcon className="w-5 h-5" /> Export D{selectedVarga} Report
-                        </button>
-                      </div>
-                   </div>
-
-                   {/* Modern Varga Selector Tabs */}
-                   <div className="flex flex-wrap gap-2.5 pb-2 border-b border-[#f1ebe6]">
-                      {[1, 9, 10].map(vNum => (
-                        <button
-                          key={vNum}
-                          onClick={() => setSelectedVarga(vNum)}
-                          className={`px-8 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all border-2 flex items-center gap-3 ${
-                            selectedVarga === vNum 
-                            ? 'bg-[#f97316] border-[#f97316] text-white shadow-xl shadow-orange-500/20 translate-y-[-2px]' 
-                            : 'bg-white border-[#f1ebe6] text-[#8c7e74] hover:border-orange-200 hover:text-orange-500'
-                          }`}
-                        >
-                          <SparklesIcon className={`w-4 h-4 ${selectedVarga === vNum ? 'text-white' : 'text-orange-400'}`} />
-                          D{vNum} - {VARGA_INFO[vNum].name}
-                        </button>
-                      ))}
-                      
-                      <div className="h-12 w-px bg-slate-100 mx-2 hidden sm:block" />
-
-                      <div className="relative group flex-1 min-w-[240px] max-w-md">
-                         <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-                            <CommandLineIcon className="w-5 h-5 text-slate-400" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Choose Division</span>
-                         </div>
-                         <select 
-                            value={selectedVarga} 
-                            onChange={(e) => setSelectedVarga(parseInt(e.target.value))}
-                            className="w-full bg-slate-50 border border-[#f1ebe6] text-[11px] font-black uppercase tracking-widest rounded-2xl pl-32 pr-12 py-4 cursor-pointer focus:ring-4 focus:ring-orange-500/5 transition-all outline-none appearance-none hover:bg-white"
-                         >
-                            <option value={1} className="hidden">Select Divisional Chart</option>
-                            {Object.entries(VARGA_INFO).map(([val, info]) => (
-                              <option key={val} value={val}>D{val} - {info.name} ({info.significance})</option>
-                            ))}
-                         </select>
-                         <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <ChevronDownIcon className="w-5 h-5 text-slate-400" />
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* Varga Context Information */}
-                   <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-4">
-                      <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-[#f97316]">
-                        <InformationCircleIcon className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-[#2d2621] uppercase tracking-widest">{VARGA_INFO[selectedVarga].name} Focus</h4>
-                        <p className="text-xs font-bold text-[#8c7e74] mt-1 leading-relaxed">Currently analyzing the "{VARGA_INFO[selectedVarga].significance}" layer of the natal destiny. Divisional charts refine the resolution of specific life areas.</p>
-                      </div>
-                   </div>
-                </div>
-
-                <div ref={chartRef} className="space-y-12 bg-white p-10 rounded-[48px] border border-[#f1ebe6] shadow-sm">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-                    <NorthIndianChart chart={activeChart} title={`${VARGA_INFO[selectedVarga].name} (D${selectedVarga})`} />
-                    
-                    <div className="space-y-8">
-                      <div className="flex items-center justify-between mb-2 px-2">
-                        <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#2d2621] flex items-center gap-2">
-                           <BoltIcon className="w-5 h-5 text-orange-400" /> High-Fidelity Planetary Details
-                        </h4>
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[10px] font-black text-[#8c7e74] uppercase tracking-tighter">Live Calculation</span>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 gap-6 overflow-y-auto max-h-[900px] pr-4 custom-scrollbar">
-                        {activeChart.points.map((p) => {
-                          const isVargottama = getVargottamaStatus(p);
-                          const hasGandanta = isGandanta(p);
-
-                          return (
-                            <div key={p.planet} className={`p-7 rounded-[32px] border transition-all duration-300 flex items-start gap-8 group relative overflow-hidden shadow-sm ${isVargottama ? 'bg-orange-50/40 border-orange-200' : 'bg-white border-[#f1ebe6] hover:border-orange-300 hover:shadow-lg'}`}>
-                               {isVargottama && (
-                                 <div className="absolute top-0 right-0 px-3 py-1 bg-[#f97316] text-white text-[9px] font-black uppercase tracking-widest rounded-bl-xl shadow-lg z-10 flex items-center gap-1.5">
-                                   <StarIcon className="w-3 h-3 fill-white" /> Vargottama
-                                 </div>
-                               )}
-                               
-                               <div className="w-24 h-24 rounded-[30px] bg-slate-50 border border-[#f1ebe6] flex flex-col items-center justify-center group-hover:bg-[#f97316] group-hover:text-white group-hover:border-transparent transition-all flex-shrink-0 shadow-inner">
-                                  <span className="text-2xl font-black leading-none mb-1">{p.planet.substring(0, 2)}</span>
-                                  <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">H{p.house}</span>
-                               </div>
-                               
-                               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-10">
-                                  {/* Pillar 1: Sign & Degree */}
-                                  <div>
-                                     <p className="text-[9px] font-black text-[#8c7e74] uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                        <ScaleIcon className="w-3.5 h-3.5" /> Placement
-                                     </p>
-                                     <p className="text-[14px] font-black text-[#2d2621] flex items-center gap-2">
-                                        <span className="text-xl leading-none text-[#f97316]">{SIGN_SYMBOLS[p.sign]}</span> {SIGN_NAMES[p.sign]}
-                                     </p>
-                                     <p className="text-[11px] font-bold text-[#2d2621] mt-1 font-mono tracking-tight">{formatDMS(p.degree)}</p>
-                                  </div>
-
-                                  {/* Pillar 2: Nakshatra (User Requested Enhancement) */}
-                                  <div className="sm:col-span-2">
-                                     <p className="text-[9px] font-black text-[#8c7e74] uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                        <SparklesIcon className="w-3.5 h-3.5" /> Nakshatra & Ruling Planet
-                                     </p>
-                                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                                       <div>
-                                          <p className="text-[15px] font-black text-[#2d2621]">{p.nakshatra}</p>
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] font-black text-[#f97316]">{formatNakDegree(p.nakshatraDegree || 0)}</span>
-                                            <span className="text-[8px] font-bold text-[#8c7e74] uppercase">/ 13°20' Arc</span>
-                                          </div>
-                                       </div>
-                                       <div className="px-3 py-1.5 bg-slate-50/80 border border-slate-100 rounded-xl flex items-center gap-3">
-                                          <div className="text-right">
-                                             <p className="text-[7px] font-black text-[#8c7e74] uppercase tracking-tighter">Ruling Lord</p>
-                                             <p className="text-[11px] font-black text-[#f97316]">{p.nakshatraLord}</p>
-                                          </div>
-                                          <div className="w-7 h-7 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-[9px] font-black text-[#2d2621] uppercase">
-                                             {p.nakshatraLord?.substring(0, 2)}
-                                          </div>
-                                       </div>
-                                     </div>
-                                  </div>
-
-                                  {/* Pillar 3: Status & Retrograde */}
-                                  <div className="flex flex-col justify-end">
-                                     <p className="text-[9px] font-black text-[#8c7e74] uppercase tracking-widest mb-2">Cosmic State</p>
-                                     <div className="flex flex-wrap gap-2">
-                                        <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase shadow-sm border ${
-                                          p.dignity === 'Exalted' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                                          p.dignity === 'Debilitated' ? 'bg-rose-50 border-rose-100 text-rose-600' :
-                                          p.dignity === 'Own Sign' ? 'bg-blue-50 border-blue-100 text-blue-600' :
-                                          'bg-white border-slate-200 text-slate-500'
-                                        }`}>
-                                          {p.dignity}
-                                        </span>
-                                        {p.isRetrograde && (
-                                          <span className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 uppercase shadow-sm flex items-center gap-1">
-                                             <ClockIcon className="w-3 h-3" /> Vakra
-                                          </span>
-                                        )}
-                                     </div>
-                                  </div>
-
-                                  {/* Pillar 4: Visual Journey (User Requested Enhancement) */}
-                                  <div className="sm:col-span-2 flex flex-col justify-end">
-                                     <div className="flex justify-between items-center mb-2">
-                                        <p className="text-[9px] font-black text-[#8c7e74] uppercase tracking-widest flex items-center gap-1.5">
-                                           <LifebuoyIcon className="w-3 h-3" /> Nakshatra Journey <span className="text-[8px] font-black px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-md">Pada {p.pada}</span>
-                                        </p>
-                                        <span className="text-[10px] font-black text-[#2d2621]">{Math.round(((p.nakshatraDegree || 0) / 13.33) * 100)}%</span>
-                                     </div>
-                                     <div className="relative w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                        <div 
-                                          className={`h-full transition-all duration-1000 ease-out z-10 ${
-                                            p.dignity === 'Exalted' ? 'bg-emerald-500' : 
-                                            p.dignity === 'Debilitated' ? 'bg-rose-500' : 'bg-[#f97316]'
-                                          }`} 
-                                          style={{ width: `${((p.nakshatraDegree || 0) / 13.33) * 100}%` }} 
-                                        />
-                                        <div className="absolute inset-0 flex justify-between pointer-events-none z-0">
-                                          <div className="w-px h-full bg-slate-200/50 ml-[25%]" />
-                                          <div className="w-px h-full bg-slate-200/50 ml-[25%]" />
-                                          <div className="w-px h-full bg-slate-200/50 ml-[25%]" />
-                                        </div>
-                                     </div>
-                                  </div>
-                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'yogas' && (
-              <div className="space-y-8 animate-in fade-in duration-500">
-                <div className="card-modern p-8 bg-gradient-to-br from-white to-orange-50 text-[#2d2621] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 overflow-hidden relative border border-orange-100 shadow-sm">
-                  <div className="relative z-10 flex items-center gap-5">
-                    <div className="w-16 h-16 bg-orange-500/10 rounded-3xl flex items-center justify-center border border-orange-500/20 shadow-xl shadow-orange-500/5">
-                      <SparklesIcon className="w-10 h-10 text-orange-500" />
-                    </div>
-                    <div>
-                      <h3 className="text-3xl font-black tracking-tight">{yogas.length} Cosmic Alignments (Yogas)</h3>
-                      <p className="text-[#f97316] text-sm font-bold uppercase tracking-widest mt-1">Advanced Vedic Detection Engine</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
-                  {yogas.map((y, i) => (
-                    <div key={i} className="card-modern flex flex-col group overflow-hidden hover:border-[#f97316] transition-all bg-white relative p-7">
-                       <div className="flex justify-between items-start mb-6">
-                          <h4 className="text-xl font-black text-[#2d2621] leading-tight group-hover:text-[#f97316] transition-colors">{y.name}</h4>
-                          <span className="text-[10px] font-black px-3 py-1.5 bg-orange-50 text-[#f97316] rounded-xl uppercase tracking-widest border border-orange-100">{y.category}</span>
+                                <div className="mt-16 w-full">
+                                   {chartStyle === 'North' ? (<NorthIndianChart chart={activeChart} scale={zoomScale} showLegend={true} />) : (<SouthIndianChart chart={activeChart} scale={zoomScale} showLegend={true} />)}
+                                </div>
+                             </div>
+                          </div>
                        </div>
-                       <p className="text-xs text-[#8c7e74] font-bold mb-6 italic leading-relaxed">"{y.description}"</p>
-                       <p className="text-sm text-[#2d2621] font-semibold leading-relaxed mb-6">{y.interpretation}</p>
-                       <div className="mt-auto pt-6 border-t border-[#f1ebe6] flex items-center justify-between">
-                          <span className="text-[10px] font-black text-[#8c7e74] uppercase">Potency</span>
-                          <span className="text-[10px] font-black text-[#f97316] uppercase tracking-widest bg-orange-50 px-2 py-0.5 rounded-lg flex items-center gap-1">{y.strength}% Strength</span>
+
+                       {/* MOON CHART (Small: 1/4 columns) */}
+                       <div className="xl:col-span-1">
+                          <div className="bg-white p-3 rounded-[40px] border border-indigo-100 shadow-md flex flex-col h-full group">
+                             <div className="bg-[#fcfbff] rounded-[32px] p-6 lg:p-8 flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+                                <div className="absolute top-6 left-6 flex items-center gap-2 z-10">
+                                   <MoonIcon className="w-5 h-5 text-indigo-500" />
+                                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Moon Chart</span>
+                                </div>
+                                <div className="mt-8 w-full scale-90">
+                                   {chartStyle === 'North' ? (<NorthIndianChart chart={moonChart} scale={0.75} showLegend={false} />) : (<SouthIndianChart chart={moonChart} scale={0.75} showLegend={false} />)}
+                                </div>
+                                <div className="mt-6 w-full pt-4 border-t border-indigo-100 text-center">
+                                   <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Mental Framework Matrix</p>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* NAVAMSHA CHART (Small: 1/4 columns) */}
+                       <div className="xl:col-span-1">
+                          <div className="bg-white p-3 rounded-[40px] border border-emerald-100 shadow-md flex flex-col h-full group">
+                             <div className="bg-[#fafffb] rounded-[32px] p-6 lg:p-8 flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+                                <div className="absolute top-6 left-6 flex items-center gap-2 z-10">
+                                   <SparklesIcon className="w-5 h-5 text-emerald-500" />
+                                   <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Navamsha (D9)</span>
+                                </div>
+                                <div className="mt-8 w-full scale-90">
+                                   {chartStyle === 'North' ? (<NorthIndianChart chart={navamshaChart} scale={0.75} showLegend={false} />) : (<SouthIndianChart chart={navamshaChart} scale={0.75} showLegend={false} />)}
+                                </div>
+                                <div className="mt-6 w-full pt-4 border-t border-emerald-100 text-center">
+                                   <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Soul Destiny Baseline</p>
+                                </div>
+                             </div>
+                          </div>
                        </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {activeTab === 'dashas' && (
-              <div className="animate-in fade-in duration-500">
-                <DashaTree nodes={dashas} />
-              </div>
-            )}
-
-            {activeTab === 'ashtakavarga' && avData && (
-              <div className="space-y-8 animate-in fade-in duration-500">
-                <AshtakavargaChart sav={avData.sav} title="Sarvashtakavarga (SAV) Matrix" />
-              </div>
+                    {/* 4. DATA TABLES */}
+                    <div className="w-full">
+                       <PlanetDetailsTable chart={activeChart} />
+                    </div>
+                  </div>
+                )}
+                {activeTab === 'dashas' && <DashaTree nodes={dashas} />}
+                {activeTab === 'varshaphala' && varshaData && <VarshaphalaView data={varshaData} onYearChange={setVarshaYear} chartStyle={chartStyle} />}
+                {activeTab === 'ashtakavarga' && avData && <AshtakavargaView data={avData} />}
+                {activeTab === 'strength' && shadbalaData.length > 0 && <StrengthView data={shadbalaData} />}
+                {activeTab === 'compatibility' && compatibilityData && <CompatibilityView data={compatibilityData} />}
+                {activeTab === 'remedies' && remediesData.length > 0 && <RemediesView data={remediesData} />}
+                {activeTab === 'knowledge' && kbData.length > 0 && <KnowledgeView data={kbData} />}
+                {activeTab === 'chat' && <ChatView messages={chatHistory} onSendMessage={handleSendMessage} isLoading={isChatLoading} />}
+              </>
             )}
           </div>
         </div>
+
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-xl border-t border-[#f1ebe6] flex items-center justify-around px-2 z-50">
+           <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all active:scale-75 ${activeTab === 'dashboard' ? 'text-[#f97316]' : 'text-[#8c7e74]'}`}><HomeIcon className="w-7 h-7" /><span className="text-[10px] font-black uppercase mt-1">Home</span></button>
+           <button onClick={() => setActiveTab('charts')} className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all active:scale-75 ${activeTab === 'charts' ? 'text-[#f97316]' : 'text-[#8c7e74]'}`}><GlobeAltIcon className="w-7 h-7" /><span className="text-[10px] font-black uppercase mt-1">Explore</span></button>
+           <button onClick={() => setActiveTab('compatibility')} className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all active:scale-75 ${activeTab === 'compatibility' ? 'text-[#f97316]' : 'text-[#8c7e74]'}`}><HeartIcon className="w-7 h-7" /><span className="text-[10px] font-black uppercase mt-1">Sync</span></button>
+           <button onClick={() => setIsMobileMoreOpen(true)} className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all active:scale-75 ${isMobileMoreOpen ? 'text-[#f97316]' : 'text-[#8c7e74]'}`}><Squares2X2Icon className="w-7 h-7" /><span className="text-[10px] font-black uppercase mt-1">More</span></button>
+        </nav>
+
+        {isMobileMoreOpen && (
+          <div className="fixed inset-0 z-[100] bg-white lg:hidden animate-in fade-in slide-in-from-bottom-10 duration-300 overflow-y-auto">
+             <div className="sticky top-0 bg-white px-6 py-8 flex items-center justify-between border-b border-[#f1ebe6] z-10">
+                <h2 className="text-2xl font-black text-[#2d2621]">Cosmic Hub</h2>
+                <button onClick={() => setIsMobileMoreOpen(false)} className="p-3 bg-slate-50 rounded-full text-[#8c7e74] active:scale-90 transition-transform"><XMarkIcon className="w-6 h-6" /></button>
+             </div>
+             <div className="p-6 space-y-10 pb-24">
+                {navModules.map((group) => (
+                  <div key={group.section} className="space-y-4">
+                     <p className="text-[10px] font-black text-[#8c7e74] uppercase tracking-widest pl-2">{group.section}</p>
+                     <div className="grid grid-cols-2 gap-4">
+                        {group.items.map((item) => (
+                          <button key={item.id} onClick={() => handleMobileTab(item.id)} className={`flex flex-col items-start p-5 rounded-2xl border-2 transition-all active:scale-95 ${activeTab === item.id ? 'bg-orange-50 border-orange-500/30 text-orange-600' : 'bg-slate-50 border-transparent text-[#2d2621]'}`}>
+                             <item.icon className="w-7 h-7 mb-3" />
+                             <span className="text-sm font-black uppercase tracking-tight">{item.label}</span>
+                          </button>
+                        ))}
+                     </div>
+                  </div>
+                ))}
+             </div>
+          </div>
+        )}
       </main>
     </div>
   );
