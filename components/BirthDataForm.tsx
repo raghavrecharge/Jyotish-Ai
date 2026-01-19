@@ -8,12 +8,17 @@ import {
   MapPinIcon, 
   GlobeAltIcon,
   SparklesIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  ArrowPathIcon,
+  AcademicCapIcon,
+  BoltIcon,
+  // Added ShieldCheckIcon to fix missing icon error
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { astrologyService } from '../services/astrologyService';
 
 interface Props {
-  onCalculate: (data: BirthData) => void;
+  onCalculate: (data: BirthData) => Promise<void>;
   initialData?: BirthData | null;
 }
 
@@ -27,125 +32,158 @@ const BirthDataForm: React.FC<Props> = ({ onCalculate, initialData }) => {
     tz: 'Asia/Kolkata'
   });
   const [errors, setErrors] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validation = astrologyService.validateBirthData(formData);
     if (!validation.isValid) {
       setErrors(validation.errors);
       return;
     }
+    
     setErrors([]);
-    onCalculate({ ...formData, isVerified: true });
+    setIsSubmitting(true);
+    try {
+      await onCalculate({ ...formData, isVerified: true });
+    } catch (err) {
+      setErrors(["Cosmic synchronization failed. Please check your network."]);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="bg-white rounded-[40px] border border-[#f1ebe6] p-8 lg:p-12 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center space-y-4 mb-12">
-          <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 mx-auto shadow-inner">
-            <SparklesIcon className="w-9 h-9" />
+    <div className="bg-white rounded-[48px] border border-[#f1ebe6] p-10 lg:p-14 shadow-2xl animate-in fade-in zoom-in-95 duration-700 max-w-4xl mx-auto overflow-hidden relative">
+      {/* Decorative Background */}
+      <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12">
+         <GlobeAltIcon className="w-64 h-64 text-orange-950" />
+      </div>
+
+      <div className="relative z-10">
+        <div className="text-center space-y-6 mb-16">
+          <div className="w-20 h-20 bg-indigo-50 rounded-[32px] flex items-center justify-center text-indigo-600 mx-auto shadow-inner border border-indigo-100 group">
+            <AcademicCapIcon className="w-10 h-10 group-hover:rotate-12 transition-transform" />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Initialize Your Matrix</h2>
-          <p className="text-sm font-medium text-slate-400 uppercase tracking-[0.2em]">Enter Precise Birth Coordinates for High-Fidelity Analysis</p>
+          <div className="space-y-2">
+            <h2 className="text-4xl font-black text-slate-800 tracking-tight">Identity Initialization</h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Establish your unique spatial-temporal coordinates</p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-10">
           {errors.length > 0 && (
-            <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3">
-              <ExclamationCircleIcon className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="p-6 bg-rose-50 border border-rose-100 rounded-[24px] flex items-start gap-4">
+              <ExclamationCircleIcon className="w-6 h-6 text-rose-500 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-xs font-black text-rose-600 uppercase tracking-widest">Initialization Error</p>
-                <ul className="text-xs font-bold text-rose-500 list-disc list-inside">
+                <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">Protocol Restriction</p>
+                <ul className="text-xs font-bold text-rose-500 list-disc list-inside opacity-90">
                   {errors.map((err, i) => <li key={i}>{err}</li>)}
                 </ul>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Seeker Name</label>
-              <div className="relative">
-                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                <input 
-                  type="text" 
-                  placeholder="e.g. Raghav Sanoriya"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-transparent focus:border-orange-200 focus:bg-white rounded-2xl outline-none text-sm font-bold text-slate-700 transition-all"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
+                 <UserIcon className="w-4 h-4 text-orange-400" /> Seeker Signature
+              </label>
+              <input 
+                type="text" 
+                required
+                disabled={isSubmitting}
+                placeholder="Full Name"
+                value={formData.name}
+                onChange={e => setFormData({...formData, name: e.target.value})}
+                className="w-full px-6 py-5 bg-[#fcf8f5] border-2 border-transparent focus:border-orange-200 focus:bg-white rounded-3xl outline-none text-base font-bold text-slate-800 transition-all shadow-inner"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date of Birth</label>
-                <div className="relative">
-                  <CalendarDaysIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 pointer-events-none" />
-                  <input 
-                    type="date" 
-                    value={formData.dob}
-                    onChange={e => setFormData({...formData, dob: e.target.value})}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-transparent focus:border-orange-200 focus:bg-white rounded-2xl outline-none text-sm font-bold text-slate-700 transition-all"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Time of Birth</label>
-                <div className="relative">
-                  <ClockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 pointer-events-none" />
-                  <input 
-                    type="time" 
-                    value={formData.tob}
-                    onChange={e => setFormData({...formData, tob: e.target.value})}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-transparent focus:border-orange-200 focus:bg-white rounded-2xl outline-none text-sm font-bold text-slate-700 transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Latitude</label>
-              <div className="relative">
-                <MapPinIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
+                   <CalendarDaysIcon className="w-4 h-4 text-indigo-400" /> Solar Date
+                </label>
                 <input 
-                  type="number" 
-                  step="any"
-                  placeholder="28.6139"
-                  value={formData.lat}
-                  onChange={e => setFormData({...formData, lat: parseFloat(e.target.value)})}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-transparent focus:border-orange-200 focus:bg-white rounded-2xl outline-none text-sm font-bold text-slate-700 transition-all"
+                  type="date" 
+                  required
+                  disabled={isSubmitting}
+                  value={formData.dob}
+                  onChange={e => setFormData({...formData, dob: e.target.value})}
+                  className="w-full px-6 py-5 bg-[#fcf8f5] border-2 border-transparent focus:border-indigo-200 focus:bg-white rounded-3xl outline-none text-sm font-bold text-slate-800 transition-all shadow-inner"
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
+                   <ClockIcon className="w-4 h-4 text-emerald-400" /> Exact Time
+                </label>
+                <input 
+                  type="time" 
+                  required
+                  disabled={isSubmitting}
+                  value={formData.tob}
+                  onChange={e => setFormData({...formData, tob: e.target.value})}
+                  className="w-full px-6 py-5 bg-[#fcf8f5] border-2 border-transparent focus:border-emerald-200 focus:bg-white rounded-3xl outline-none text-sm font-bold text-slate-800 transition-all shadow-inner"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Longitude</label>
-              <div className="relative">
-                <GlobeAltIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                <input 
-                  type="number" 
-                  step="any"
-                  placeholder="77.2090"
-                  value={formData.lng}
-                  onChange={e => setFormData({...formData, lng: parseFloat(e.target.value)})}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-transparent focus:border-orange-200 focus:bg-white rounded-2xl outline-none text-sm font-bold text-slate-700 transition-all"
-                />
-              </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
+                 <MapPinIcon className="w-4 h-4 text-rose-400" /> Geographic Latitude
+              </label>
+              <input 
+                type="number" 
+                step="any"
+                required
+                disabled={isSubmitting}
+                placeholder="28.6139"
+                value={formData.lat}
+                onChange={e => setFormData({...formData, lat: parseFloat(e.target.value)})}
+                className="w-full px-6 py-5 bg-[#fcf8f5] border-2 border-transparent focus:border-rose-200 focus:bg-white rounded-3xl outline-none text-base font-bold text-slate-800 transition-all shadow-inner"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-2">
+                 <GlobeAltIcon className="w-4 h-4 text-blue-400" /> Geographic Longitude
+              </label>
+              <input 
+                type="number" 
+                step="any"
+                required
+                disabled={isSubmitting}
+                placeholder="77.2090"
+                value={formData.lng}
+                onChange={e => setFormData({...formData, lng: parseFloat(e.target.value)})}
+                className="w-full px-6 py-5 bg-[#fcf8f5] border-2 border-transparent focus:border-blue-200 focus:bg-white rounded-3xl outline-none text-base font-bold text-slate-800 transition-all shadow-inner"
+              />
             </div>
           </div>
 
-          <div className="pt-6">
+          <div className="pt-8 flex flex-col items-center gap-6 border-t border-slate-50">
             <button 
               type="submit"
-              className="w-full py-5 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-orange-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+              disabled={isSubmitting}
+              className="w-full py-6 bg-[#2d2621] text-white rounded-[32px] font-black text-xs uppercase tracking-[0.4em] shadow-2xl shadow-slate-900/20 hover:bg-[#f97316] hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-80 flex items-center justify-center gap-4 group/btn"
             >
-              Generate Cosmic Blueprint
+              {isSubmitting ? (
+                <>
+                  <ArrowPathIcon className="w-6 h-6 animate-spin" />
+                  Calibrating Ephemeris...
+                </>
+              ) : (
+                <>
+                  Initialize Matrix <BoltIcon className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+                </>
+              )}
             </button>
-            <p className="text-center text-[9px] font-bold text-slate-400 uppercase mt-4 tracking-widest">
-              Ayanamsa: True Chitra Paksha (Lahiri) • Siderial Zodiac
-            </p>
+            <div className="flex items-center gap-4 text-[9px] font-black text-slate-300 uppercase tracking-widest">
+              <span className="flex items-center gap-1.5"><ShieldCheckIcon className="w-4 h-4 text-emerald-400" /> Lahiri Sync</span>
+              <div className="w-1 h-1 rounded-full bg-slate-200" />
+              <span className="flex items-center gap-1.5"><SparklesIcon className="w-4 h-4 text-orange-400" /> Siderial Engine v4.0</span>
+            </div>
           </div>
         </form>
       </div>

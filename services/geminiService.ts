@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { DivisionalChart, YogaMatch, ChatMessage } from "../types";
 import { VarshaphalaData } from "./astrologyService";
 
@@ -105,13 +105,30 @@ export const geminiService = {
     return callGeminiWithRetry(async () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `Analyze this Vedic Chart and identify at least 5 major Yogas (e.g., Gaja Kesari, Raja Yogas, Pancha Mahapurusha).
-      Chart data: ${JSON.stringify(chart.points)}
-      Return the result as a JSON array of objects with fields: name, description, rule, interpretation, strength, category.`;
+      Chart data: ${JSON.stringify(chart.points)}`;
 
+      // Use responseSchema for structured JSON output
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: prompt,
-        config: { responseMimeType: "application/json" }
+        config: { 
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                description: { type: Type.STRING },
+                rule: { type: Type.STRING },
+                interpretation: { type: Type.STRING },
+                strength: { type: Type.NUMBER },
+                category: { type: Type.STRING }
+              },
+              required: ["name", "description", "rule", "interpretation", "strength", "category"]
+            }
+          }
+        }
       });
       
       try {
