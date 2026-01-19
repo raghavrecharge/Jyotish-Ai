@@ -31,31 +31,36 @@ const CompatibilityView: React.FC<Props> = ({ data, onReset, onCalculate }) => {
     return 'text-rose-500';
   };
 
-  const getProgressColor = (score: number, max: number) => {
-    const ratio = score / max;
-    if (ratio > 0.7) return 'bg-emerald-500';
-    if (ratio > 0.4) return 'bg-amber-500';
-    return 'bg-rose-500';
+  const getProgressColor = (score: number) => {
+    if (score >= 25) return '#10b981'; // Emerald 500
+    if (score >= 18) return '#f59e0b'; // Amber 500
+    return '#f43f5e'; // Rose 500
   };
 
+  // Format score to 1 decimal place if it has a remainder, otherwise integer
+  const displayScore = data.totalScore % 1 === 0 ? data.totalScore.toString() : data.totalScore.toFixed(1);
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-      {/* Header Summary */}
-      <div className="bg-white rounded-[20px] p-10 border border-[#f1ebe6] shadow-sm relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-12">
-        <div className="relative z-10 flex-1 space-y-6">
-          <div className="flex items-center gap-3">
-             <div className="px-4 py-1 bg-rose-50 rounded-full text-[10px] font-black uppercase tracking-widest border border-rose-100 text-rose-600 flex items-center gap-2">
-               <HeartIcon className="w-4 h-4" /> Relationship Sync
+    <div className="space-y-10 animate-in fade-in duration-700 pb-24">
+      {/* 1. HERO COMPATIBILITY CARD */}
+      <div className="bg-white rounded-[48px] border border-[#f1ebe6] p-10 lg:p-14 shadow-sm relative overflow-hidden flex flex-col xl:flex-row items-center justify-between gap-12">
+        <div className="relative z-10 flex-1 space-y-8">
+          <div className="space-y-4">
+             <div className="inline-flex items-center gap-3 px-5 py-2 bg-rose-50 rounded-full border border-rose-100 text-rose-600">
+               <HeartIcon className="w-4 h-4" />
+               <span className="text-[10px] font-black uppercase tracking-[0.4em]">Soul Resonance Matrix</span>
              </div>
-             <span className="text-[10px] font-black text-[#8c7e74] uppercase tracking-widest">{data.partner1} & {data.partner2}</span>
+             <h2 className="text-4xl lg:text-5xl font-black text-slate-800 tracking-tighter leading-none">
+                {data.partner1} <span className="text-slate-300 mx-2">&</span> {data.partner2}
+             </h2>
           </div>
-          <h2 className="text-4xl font-black text-[#2d2621] tracking-tight">Ashta Koota Analysis</h2>
-          <p className="text-[#8c7e74] font-medium max-w-xl leading-relaxed text-lg italic">
+          
+          <p className="text-base lg:text-lg font-medium text-slate-500 max-w-xl leading-relaxed italic">
             "Vedic compatibility measures the alignment of two souls through the moon's nakshatra. A score above 18/36 is considered foundational for a harmonious partnership."
           </p>
           
-          <div className="flex flex-wrap items-center gap-4 pt-4">
-             <div className={`px-8 py-3 rounded-xl font-black text-sm uppercase tracking-widest border-2 flex items-center gap-2 ${
+          <div className="flex flex-wrap items-center gap-4">
+             <div className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em] border-2 flex items-center gap-3 shadow-sm ${
                data.totalScore >= 18 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'
              }`}>
                {data.totalScore >= 18 ? <CheckBadgeIcon className="w-5 h-5" /> : <ExclamationTriangleIcon className="w-5 h-5" />}
@@ -63,122 +68,143 @@ const CompatibilityView: React.FC<Props> = ({ data, onReset, onCalculate }) => {
              </div>
              <button 
               onClick={onReset}
-              className="px-6 py-3 bg-white border-2 border-slate-200 text-slate-500 rounded-xl font-black text-xs uppercase tracking-widest hover:border-orange-500 hover:text-orange-500 transition-all flex items-center gap-2"
+              className="px-8 py-4 bg-white border border-[#f1ebe6] text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:text-orange-500 hover:border-orange-200 transition-all flex items-center gap-3 active:scale-95 shadow-sm"
              >
-               <ArrowPathIcon className="w-4 h-4" /> New Match
+               <ArrowPathIcon className="w-4 h-4" /> New Alignment
              </button>
           </div>
         </div>
 
-        {/* Big Score Gauge */}
-        <div className="relative flex flex-col items-center justify-center p-10 bg-[#fcf8f5] rounded-[24px] border-2 border-dashed border-slate-200">
-           <div className="relative w-48 h-48 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90">
-                 <circle cx="96" cy="96" r="80" stroke="#f1ebe6" strokeWidth="16" fill="transparent" />
+        {/* REFINED GAUGE TO MATCH IMAGE EXACTLY */}
+        <div className="relative flex flex-col items-center justify-center p-8 bg-white rounded-full">
+           <div className="relative w-64 h-64 flex items-center justify-center">
+              <svg viewBox="0 0 220 220" className="w-full h-full transform -rotate-90">
+                 {/* Track */}
+                 <circle cx="110" cy="110" r="90" stroke="#f1ebe6" strokeWidth="20" fill="transparent" />
+                 {/* Progress */}
                  <circle 
-                   cx="96" cy="96" r="80" 
-                   stroke={data.totalScore >= 18 ? '#10b981' : '#f43f5e'} 
-                   strokeWidth="16" fill="transparent" 
-                   strokeDasharray={2 * Math.PI * 80} 
-                   strokeDashoffset={2 * Math.PI * 80 - (data.totalScore / 36) * 2 * Math.PI * 80}
+                   cx="110" cy="110" r="90" 
+                   stroke={getProgressColor(data.totalScore)} 
+                   strokeWidth="20" 
+                   fill="transparent" 
+                   strokeDasharray={2 * Math.PI * 90} 
+                   strokeDashoffset={2 * Math.PI * 90 - (data.totalScore / 36) * 2 * Math.PI * 90}
                    strokeLinecap="round"
                    className="transition-all duration-1000 ease-out"
                  />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                 <span className={`text-6xl font-black tracking-tighter ${getScoreColor(data.totalScore)}`}>{data.totalScore}</span>
-                 <span className="text-[10px] font-black text-[#8c7e74] uppercase mt-1 tracking-widest">Out of 36</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                 <span className={`text-7xl font-black tracking-tighter leading-none ${getScoreColor(data.totalScore)}`}>
+                    {displayScore}
+                 </span>
+                 <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em] mt-3 ml-2">
+                    OUT OF 36
+                 </span>
               </div>
            </div>
         </div>
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-rose-500/5 blur-[120px] translate-x-1/2 pointer-events-none" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 2. DETAILED BREAKDOWN GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Manglik Section */}
-        <div className="space-y-6">
-           <div className="card-modern p-8 bg-slate-900 text-white">
-              <h3 className="text-lg font-black mb-6 flex items-center gap-3 text-rose-400">
-                 <FireIcon className="w-6 h-6" /> Manglik (Kuja) Dosha
-              </h3>
-              <div className="space-y-8">
-                 <div className="flex justify-between items-center">
-                    <div>
-                       <p className="text-xs font-black uppercase text-slate-500">{data.partner1}</p>
-                       <p className={`text-sm font-black mt-1 ${data.manglikStatus.partner1 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                          {data.manglikStatus.partner1 ? 'High Intensity' : 'Non-Manglik'}
-                       </p>
-                    </div>
-                    <div className={`w-3 h-3 rounded-full ${data.manglikStatus.partner1 ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                 </div>
-                 <div className="flex justify-between items-center">
-                    <div>
-                       <p className="text-xs font-black uppercase text-slate-500">{data.partner2}</p>
-                       <p className={`text-sm font-black mt-1 ${data.manglikStatus.partner2 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                          {data.manglikStatus.partner2 ? 'High Intensity' : 'Non-Manglik'}
-                       </p>
-                    </div>
-                    <div className={`w-3 h-3 rounded-full ${data.manglikStatus.partner2 ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                 </div>
+        <div className="lg:col-span-4 space-y-8">
+           <div className="bg-slate-900 rounded-[48px] p-10 text-white relative overflow-hidden shadow-2xl">
+              <div className="relative z-10 space-y-8">
+                <div className="space-y-1">
+                   <h3 className="text-xl font-black text-rose-400 tracking-tight flex items-center gap-3">
+                      <FireIcon className="w-6 h-6" /> Kuja (Manglik) Check
+                   </h3>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Energy Integrity Protocol</p>
+                </div>
 
-                 {data.manglikStatus.cancellation && (
-                    <div className="mt-8 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                       <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2 mb-1">
+                <div className="space-y-6">
+                   <div className="flex justify-between items-center p-5 bg-white/5 rounded-3xl border border-white/10 group">
+                      <div>
+                         <p className="text-[10px] font-black uppercase text-slate-500 mb-1">{data.partner1}</p>
+                         <p className={`text-lg font-black ${data.manglikStatus.partner1 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {data.manglikStatus.partner1 ? 'High Intensity' : 'Neutral Presence'}
+                         </p>
+                      </div>
+                      <div className={`w-3 h-3 rounded-full ${data.manglikStatus.partner1 ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)]' : 'bg-emerald-500'}`} />
+                   </div>
+                   <div className="flex justify-between items-center p-5 bg-white/5 rounded-3xl border border-white/10 group">
+                      <div>
+                         <p className="text-[10px] font-black uppercase text-slate-500 mb-1">{data.partner2}</p>
+                         <p className={`text-lg font-black ${data.manglikStatus.partner2 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {data.manglikStatus.partner2 ? 'High Intensity' : 'Neutral Presence'}
+                         </p>
+                      </div>
+                      <div className={`w-3 h-3 rounded-full ${data.manglikStatus.partner2 ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)]' : 'bg-emerald-500'}`} />
+                   </div>
+                </div>
+
+                {data.manglikStatus.cancellation && (
+                    <div className="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl">
+                       <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                           <ShieldCheckIcon className="w-4 h-4" /> Cancellation Found
                        </p>
-                       <p className="text-xs font-bold text-slate-300">{data.manglikStatus.cancellation}</p>
+                       <p className="text-sm font-bold text-slate-300 leading-relaxed italic">{data.manglikStatus.cancellation}</p>
                     </div>
-                 )}
+                )}
               </div>
            </div>
 
-           <div className="card-modern p-6 bg-[#fffcf9] border-dashed border-2">
-              <h3 className="text-xs font-black text-[#8c7e74] uppercase tracking-widest mb-4">Astro Guidance</h3>
-              <p className="text-sm font-bold text-[#2d2621] leading-relaxed italic">
+           <div className="bg-[#fcf8f5] rounded-[40px] p-8 border border-orange-100/50 space-y-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Celestial Guidance</h3>
+              <p className="text-base font-medium text-slate-700 leading-relaxed italic">
                  "Matches scoring between 18-24 require conscious effort in communication. Mercury remedies are suggested for both partners to bridge the understanding gap."
               </p>
            </div>
         </div>
 
         {/* Koota Details */}
-        <div className="lg:col-span-2 space-y-6">
-           <div className="card-modern p-8 bg-white border-[#f1ebe6]">
-              <h3 className="text-xl font-black text-[#2d2621] mb-8 flex items-center gap-3">
-                 <ScaleIcon className="w-6 h-6 text-[#f97316]" /> The 8-Point Guna Matrix
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+        <div className="lg:col-span-8 space-y-8">
+           <div className="bg-white rounded-[48px] border border-[#f1ebe6] p-10 lg:p-12 shadow-sm">
+              <div className="flex items-center justify-between mb-12">
+                <div className="space-y-1">
+                   <h3 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-4">
+                      <ScaleIcon className="w-8 h-8 text-orange-500" /> The 8-Point Guna Matrix
+                   </h3>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Multidimensional Sync Analysis</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
                 {data.kootas.map((k, i) => (
                   <div key={i} className="group">
-                    <div className="flex justify-between items-center mb-3">
-                       <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-black text-[#2d2621] uppercase tracking-tighter">{k.name}</span>
-                          <span className="text-[9px] font-bold text-[#8c7e74] opacity-60">({k.description})</span>
+                    <div className="flex justify-between items-end mb-3">
+                       <div className="flex flex-col">
+                          <span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{k.name}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{k.description}</span>
                        </div>
-                       <span className="text-xs font-black text-[#2d2621]">{k.score} <span className="text-slate-300 font-medium">/ {k.max}</span></span>
+                       <span className="text-sm font-black text-slate-800">{k.score} <span className="text-slate-300 font-medium">/ {k.max}</span></span>
                     </div>
-                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                        <div 
-                         className={`h-full transition-all duration-1000 ease-out rounded-full ${getProgressColor(k.score, k.max)}`} 
+                         className={`h-full transition-all duration-1000 ease-out rounded-full ${k.score / k.max > 0.7 ? 'bg-emerald-500' : k.score / k.max > 0.4 ? 'bg-amber-500' : 'bg-rose-500'}`} 
                          style={{ width: `${(k.score / k.max) * 100}%` }} 
                        />
                     </div>
-                    <p className="mt-2 text-[10px] font-medium text-[#8c7e74] leading-relaxed group-hover:text-[#2d2621] transition-colors">{k.interpretation}</p>
+                    <p className="mt-3 text-xs font-medium text-slate-500 leading-relaxed group-hover:text-slate-800 transition-colors italic">"{k.interpretation}"</p>
                   </div>
                 ))}
               </div>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="card-modern p-6 bg-[#fffcf9] border-2 border-emerald-100">
-                 <UserGroupIcon className="w-8 h-8 text-emerald-500 mb-3" />
-                 <h4 className="text-xs font-black uppercase text-[#8c7e74] mb-1">Social Dynamic</h4>
-                 <p className="text-lg font-black text-[#2d2621]">Complementary</p>
-                 <p className="text-[9px] font-bold text-[#8c7e74] mt-1">Growth through collaboration.</p>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-emerald-50 rounded-[40px] p-8 border border-emerald-100 group transition-all hover:bg-emerald-100/50">
+                 <UserGroupIcon className="w-10 h-10 text-emerald-500 mb-6 group-hover:scale-110 transition-transform" />
+                 <h4 className="text-[10px] font-black uppercase text-emerald-600 mb-1 tracking-widest">Social Matrix</h4>
+                 <p className="text-xl font-black text-slate-800">Complementary Path</p>
+                 <p className="text-[10px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Growth through collaboration</p>
               </div>
-              <div className="card-modern p-6 bg-[#fffcf9] border-2 border-amber-100">
-                 <SparklesIcon className="w-8 h-8 text-amber-500 mb-3" />
-                 <h4 className="text-xs font-black uppercase text-[#8c7e74] mb-1">Spiritual Alignment</h4>
-                 <p className="text-lg font-black text-[#2d2621]">Vata-Pitta Balance</p>
-                 <p className="text-[9px] font-bold text-[#8c7e74] mt-1">Balanced constitutional sync.</p>
+              <div className="bg-amber-50 rounded-[40px] p-8 border border-amber-100 group transition-all hover:bg-amber-100/50">
+                 <SparklesIcon className="w-10 h-10 text-amber-500 mb-6 group-hover:scale-110 transition-transform" />
+                 <h4 className="text-[10px] font-black uppercase text-amber-600 mb-1 tracking-widest">Spiritual Synastry</h4>
+                 <p className="text-xl font-black text-slate-800">Vata-Pitta Balance</p>
+                 <p className="text-[10px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Bio-energetic equilibrium</p>
               </div>
            </div>
         </div>

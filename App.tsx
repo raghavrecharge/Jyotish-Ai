@@ -161,6 +161,7 @@ const App: React.FC = () => {
     setIsSyncing(true);
     await apiService.setActiveProfileId(id);
     setActiveProfileId(id);
+    setCompatibilityData(null); // Clear compatibility when user changes
     setTimeout(() => setIsSyncing(false), 600);
   };
 
@@ -182,6 +183,19 @@ const App: React.FC = () => {
       setProfiles(updatedProfiles);
       setActiveProfileId(newId);
       setShowInputForm(false);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleCalculateCompatibility = async (partnerData: BirthData) => {
+    if (!profile) return;
+    setIsSyncing(true);
+    try {
+      // Small simulation delay for UX
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      const result = astrologyService.calculateCompatibility(profile.birthData, partnerData);
+      setCompatibilityData(result);
     } finally {
       setIsSyncing(false);
     }
@@ -361,7 +375,7 @@ const App: React.FC = () => {
                 {activeTab === 'varshaphala' && varshaData && <VarshaphalaView data={varshaData} onYearChange={setVarshaYear} />}
                 {activeTab === 'ashtakavarga' && avData && <AshtakavargaView data={avData} />}
                 {activeTab === 'strength' && shadbalaData.length > 0 && <StrengthView data={shadbalaData} />}
-                {activeTab === 'compatibility' && <CompatibilityView data={compatibilityData} onReset={() => setCompatibilityData(null)} onCalculate={async (d) => {}} />}
+                {activeTab === 'compatibility' && <CompatibilityView data={compatibilityData} onReset={() => setCompatibilityData(null)} onCalculate={handleCalculateCompatibility} />}
                 {activeTab === 'remedies' && remediesData.length > 0 && <RemediesView data={remediesData} />}
                 {activeTab === 'knowledge' && kbData.length > 0 && <KnowledgeView data={kbData} />}
                 {activeTab === 'chat' && <ChatView messages={chatHistory} onSendMessage={handleSendMessage} isLoading={isChatLoading} />}
