@@ -130,7 +130,7 @@ const DashasView: React.FC<Props> = ({ nodes }) => {
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       
-      {/* 1. ACTIVE PATH HEADER */}
+      {/* 1. ACTIVE PATH HEADER - SYNCED TYPOGRAPHY */}
       <div className="bg-white border border-[#f1ebe6] rounded-[48px] p-10 lg:p-14 shadow-sm relative overflow-hidden group">
         <div className="relative z-10 flex flex-col xl:flex-row items-center justify-between gap-12">
           <div className="space-y-10 flex-1 w-full">

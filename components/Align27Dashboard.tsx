@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TransitContext } from '../types';
 import { 
   MoonIcon, 
@@ -18,6 +18,13 @@ interface Props {
 const Align27Dashboard: React.FC<Props> = ({ data, userName = "Seeker" }) => {
   const score = 82;
   
+  const timeOfDayGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning,";
+    if (hour < 17) return "Good Afternoon,";
+    return "Good Evening,";
+  }, []);
+
   const lunarDays = Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - 3 + i);
@@ -33,7 +40,7 @@ const Align27Dashboard: React.FC<Props> = ({ data, userName = "Seeker" }) => {
 
   const tithiInfo = {
     name: 'Trayodashi',
-    essence: 'This lunar day resonates with fulfillment, social charisma, and luxury. Excellent for creative ventures.',
+    essence: 'The Moon is transiting your 9th house of Dharma. This is a powerful window for expansion and higher learning.',
     dos: ['Social gatherings', 'New investments', 'Healing rituals'],
     donts: ['Argumentative speech', 'Isolation', 'Lending large sums']
   };
@@ -55,36 +62,36 @@ const Align27Dashboard: React.FC<Props> = ({ data, userName = "Seeker" }) => {
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-16">
       
-      {/* HERO SECTION - REFINED GAUGE */}
+      {/* HERO SECTION - REFINED TO MATCH IMAGE */}
       <div className="relative overflow-hidden bg-white rounded-[48px] border border-[#f1ebe6] p-10 lg:p-14 shadow-sm">
         <div className="relative z-10 flex flex-col xl:flex-row items-center justify-between gap-12">
           <div className="flex-1 space-y-8 text-center xl:text-left">
             <div className="inline-flex items-center gap-3 px-5 py-2 bg-[#fcf8f5] rounded-full border border-orange-100">
                <SparklesIcon className="w-4 h-4 text-orange-500 animate-pulse" />
-               <span className="text-[10px] font-black text-orange-600 uppercase tracking-[0.4em]">Temporal Flow: 82% Optimal</span>
+               <span className="text-[10px] font-black text-orange-600 uppercase tracking-[0.4em]">Temporal Flow: {score}% Optimal</span>
             </div>
             
             <div className="space-y-2">
-               <h1 className="text-4xl lg:text-5xl font-black text-slate-800 tracking-tighter leading-none">
-                 Good Evening,<br/>
+               <h1 className="text-5xl lg:text-6xl font-black text-slate-800 tracking-tighter leading-tight">
+                 {timeOfDayGreeting}<br/>
                  <span className="text-orange-500">{userName}</span>
                </h1>
                <p className="text-base lg:text-lg font-medium text-slate-500 max-w-xl mx-auto xl:mx-0 leading-relaxed italic">
-                 The <span className="text-indigo-600 font-bold">Moon</span> is transiting your 9th house of Dharma. This is a powerful window for expansion and higher learning.
+                 {tithiInfo.essence}
                </p>
             </div>
 
             <div className="flex flex-wrap items-center justify-center xl:justify-start gap-4">
-               <button className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl active:scale-95 transition-all">Today's Protocol</button>
-               <button className="px-10 py-4 bg-white border border-[#f1ebe6] text-slate-700 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-slate-50 active:scale-95 transition-all">Full Scan</button>
+               <button className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl active:scale-95 transition-all">Daily Protocol</button>
+               <button className="px-10 py-4 bg-white border border-[#f1ebe6] text-slate-700 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-slate-50 active:scale-95 transition-all">Matrix Scan</button>
             </div>
           </div>
 
-          {/* EXACT MATCH TO PROVIDED IMAGE */}
-          <div className="relative flex flex-col items-center justify-center p-8 bg-white rounded-full">
+          {/* FLOW GAUGE - DOTTED TRACK MATCH */}
+          <div className="relative flex flex-col items-center justify-center p-4">
              <div className="w-64 h-64 relative flex items-center justify-center">
                 <svg viewBox="0 0 220 220" className="w-full h-full transform -rotate-90">
-                   {/* Dotted Track */}
+                   {/* Dotted Background Track */}
                    <circle 
                      cx="110" cy="110" r="90" 
                      stroke="#f1ebe6" 
@@ -92,7 +99,7 @@ const Align27Dashboard: React.FC<Props> = ({ data, userName = "Seeker" }) => {
                      fill="transparent" 
                      strokeDasharray="4 8" 
                    />
-                   {/* Orange Progress */}
+                   {/* Solid Orange Progress Arc */}
                    <circle 
                      cx="110" cy="110" r="90" 
                      stroke="#f97316" 
@@ -106,7 +113,7 @@ const Align27Dashboard: React.FC<Props> = ({ data, userName = "Seeker" }) => {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                    <span className="text-7xl font-black text-[#1e293b] tracking-tighter leading-none">{score}</span>
-                   <span className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.6em] mt-3 ml-2">Flow</span>
+                   <span className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.6em] mt-4 ml-2">Flow</span>
                 </div>
              </div>
           </div>
@@ -114,17 +121,17 @@ const Align27Dashboard: React.FC<Props> = ({ data, userName = "Seeker" }) => {
         <div className="absolute top-0 right-0 w-1/2 h-full bg-orange-500/5 blur-[120px] translate-x-1/2" />
       </div>
 
-      {/* COMPACT CHANDRA PROGRESSION */}
+      {/* CHANDRA PROGRESSION SECTION */}
       <div className="space-y-6 px-4">
          <div className="flex items-center justify-between">
             <div className="space-y-1">
-               <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+               <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
                   <MoonIcon className="w-6 h-6 text-indigo-500" /> Chandra progression
                </h2>
-               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Lunar Transit Mapping</p>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Lunar Transit Mapping</p>
             </div>
-            <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100">
-               Current: {lunarDays[3].phase} Phase
+            <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100 shadow-sm">
+               {lunarDays[3].phase} Phase Active
             </span>
          </div>
 
@@ -170,7 +177,7 @@ const Align27Dashboard: React.FC<Props> = ({ data, userName = "Seeker" }) => {
                     </div>
                  </div>
                  <div className="p-6 bg-[#fcf8f5] rounded-3xl border border-orange-100/50">
-                    <p className="text-lg font-medium text-slate-700 leading-relaxed italic">"{tithiInfo.essence}"</p>
+                    <p className="text-lg font-medium text-slate-700 leading-relaxed italic">The energy today favors strategic alignment and internal cultivation. Establish clear boundaries before engaging in high-velocity social exchanges.</p>
                  </div>
                  <div className="grid grid-cols-2 gap-10">
                     <div className="space-y-4">
